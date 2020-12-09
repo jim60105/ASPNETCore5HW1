@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ASPNETCore5HW1.Models;
+using Omu.ValueInjecter;
 
 namespace ASPNETCore5HW1.Controllers
 {
@@ -13,25 +14,25 @@ namespace ASPNETCore5HW1.Controllers
     [ApiController]
     public class CoursesController : ControllerBase
     {
-        private readonly ContosoUniversityContext _context;
+        private readonly ContosoUniversityContext db;
 
         public CoursesController(ContosoUniversityContext context)
         {
-            _context = context;
+            db = context;
         }
 
         // GET: api/Courses
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Course>>> GetCourses()
         {
-            return await _context.Courses.ToListAsync();
+            return await db.Courses.ToListAsync();
         }
 
         // GET: api/Courses/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Course>> GetCourse(int id)
         {
-            var course = await _context.Courses.FindAsync(id);
+            var course = await db.Courses.FindAsync(id);
 
             if (course == null)
             {
@@ -42,32 +43,15 @@ namespace ASPNETCore5HW1.Controllers
         }
 
         // PUT: api/Courses/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCourse(int id, Course course)
-        {
-            if (id != course.CourseId)
-            {
-                return BadRequest();
+        public async Task<IActionResult> PutCourse(int id, CourseEditVM courseVM) {
+            if (!CourseExists(id)) {
+                return NotFound();
             }
 
-            _context.Entry(course).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CourseExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            Course course = await db.Courses.FindAsync(id);
+            course?.InjectFrom(courseVM);
+            await db.SaveChangesAsync();
 
             return NoContent();
         }
@@ -75,33 +59,33 @@ namespace ASPNETCore5HW1.Controllers
         // POST: api/Courses
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Course>> PostCourse(Course course)
-        {
-            _context.Courses.Add(course);
-            await _context.SaveChangesAsync();
+       public async Task<ActionResult<Course>> PostCourse(CourseEditVM courseVM) {
+            Course course = new Course();
+            course.InjectFrom(courseVM);
 
-            return CreatedAtAction("GetCourse", new { id = course.CourseId }, course);
+            var entry = db.Courses.Add(course);
+            await db.SaveChangesAsync();
+
+            course =(Course) entry.GetDatabaseValues().ToObject();
+            return Created($"/api/Courses/{course.CourseId}",course);
         }
 
         // DELETE: api/Courses/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCourse(int id)
-        {
-            var course = await _context.Courses.FindAsync(id);
-            if (course == null)
-            {
+        public async Task<IActionResult> DeleteCourse(int id) {
+            var course = await db.Courses.FindAsync(id);
+            if (course == null) {
                 return NotFound();
             }
 
-            _context.Courses.Remove(course);
-            await _context.SaveChangesAsync();
+            db.Courses.Remove(course);
+            await db.SaveChangesAsync();
 
             return NoContent();
         }
 
-        private bool CourseExists(int id)
-        {
-            return _context.Courses.Any(e => e.CourseId == id);
+        private bool CourseExists(int id) {
+            return db.Courses.Any(e => e.CourseId == id);
         }
     }
 }
