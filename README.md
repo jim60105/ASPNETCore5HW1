@@ -4,7 +4,7 @@
 作業內容如下：
 - v請以 ContosoUniversity 資料庫為主要資料來源
 - v須透過 DB First 流程建立 EF Core 實體資料模型
-- 須對資料庫進行版控 (使用資料庫移轉方式)
+- v須對資料庫進行版控 (使用資料庫移轉方式)
 - v須對每一個表格設計出完整的 CRUD 操作 APIs
 - v針對 Departments 表格的 CUD 操作需用到預存程序
 - v請在 CoursesController 中設計 vwCourseStudents 與 vwCourseStudentCount 檢視表的 API 輸出
