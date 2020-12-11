@@ -87,5 +87,27 @@ namespace ASPNETCore5HW1.Controllers
         private bool CourseExists(int id) {
             return db.Courses.Any(e => e.CourseId == id);
         }
+
+        [HttpGet("/GetCourseStudents/{id}")]
+        public ActionResult<IEnumerable<Person>> GetCourseStudents(int id)
+        {
+            var Students = db.VwCourseStudents.Where(e => e.CourseId == id).ToList();
+            var result = new List<Person>();
+            foreach (var student in Students) {
+                var person = db.People.Find(student.StudentId);
+                result.Add(person);
+            }
+
+            return result;
+        }
+
+        [HttpGet("/GetCourseStudentCount/{id}")]
+        public ActionResult<int> GetCourseStudentCount(int id)
+        {
+            var count = db.VwCourseStudentCounts.Where(e => e.CourseId == id).FirstOrDefault();
+
+            return count.StudentCount;
+        }
+
     }
 }
