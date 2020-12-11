@@ -78,5 +78,13 @@ namespace ASPNETCore5HW1.Controllers {
         }
 
         private bool DepartmentExists(int id) => db.Departments.Any(e => e.DepartmentId == id);
+
+        [HttpGet("DepartmentCoursesCount/{id}")]
+        public ActionResult<int> GetDepartmentCoursesCount(int id)
+        {
+            var result = db.VwDepartmentCourseCounts.FromSqlInterpolated($"SELECT * from [dbo].[vwDepartmentCourseCount] WHERE [DepartmentID] = {id}");
+            return result.First().CourseCount;
+        }
+        
     }
 }
