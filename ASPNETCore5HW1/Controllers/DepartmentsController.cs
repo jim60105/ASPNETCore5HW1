@@ -6,24 +6,36 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
-namespace ASPNETCore5HW1.Controllers {
+namespace ASPNETCore5HW1.Controllers
+{
     [Route("api/[controller]")]
     [ApiController]
-    public class DepartmentsController : ControllerBase {
+    public class DepartmentsController : ControllerBase
+    {
         private readonly ContosoUniversityContext db;
+        private readonly ContosoUniversityContextProcedures procedures;
 
-        public DepartmentsController(ContosoUniversityContext context) => db = context;
+        public DepartmentsController(
+            ContosoUniversityContext context,
+            ContosoUniversityContextProcedures _procedures)
+        {
+            db = context;
+            procedures = _procedures;
+        }
 
         // GET: api/Departments
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Department>>> GetDepartments() => await db.Departments.ToListAsync();
+        public async Task<ActionResult<IEnumerable<Department>>> GetDepartments()
+            => await db.Departments.ToListAsync();
 
         // GET: api/Departments/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Department>> GetDepartment(int id) {
+        public async Task<ActionResult<Department>> GetDepartment(int id)
+        {
             Department department = await db.Departments.FindAsync(id);
 
-            if (department == null) {
+            if (department == null)
+            {
                 return NotFound();
             }
 
@@ -32,45 +44,54 @@ namespace ASPNETCore5HW1.Controllers {
 
         // PUT: api/Departments/5
         [HttpPut("{id}")]
-        public IActionResult PutDepartment(int id, Department departmentVM) {
-            if (!DepartmentExists(id)) {
+        public async Task<IActionResult> PutDepartment(int id, Department departmentVM)
+        {
+            if (!DepartmentExists(id))
+            {
                 return NotFound();
             }
 
             var department = db.Departments.Find(id);
-            if (department != null) {
-                db.Database.ExecuteSqlRaw("EXEC [dbo].[Department_Update] @DepartmentID,@Name,@Budget,@StartDate,@InstructorID,@RowVersion_Original",
-                    new SqlParameter("@DepartmentID", id),
-                    new SqlParameter("@Name", departmentVM.Name),
-                    new SqlParameter("@Budget", departmentVM.Budget),
-                    new SqlParameter("@StartDate", departmentVM.StartDate),
-                    new SqlParameter("@InstructorID", departmentVM.InstructorId),
-                    new SqlParameter("@RowVersion_Original", department.RowVersion)
-                );
+            if (department != null)
+            {
+                await procedures.Department_Update(
+                    department.DepartmentId,
+                    departmentVM.Name,
+                    departmentVM.Budget,
+                    departmentVM.StartDate,
+                    departmentVM.InstructorId,
+                    department.RowVersion);
             }
 
             // 更新dbcontext cache
             db.Entry(department).Reload();
 
-            return Created($"api/Departments/{id}", department);
+            return Ok();
         }
 
         // POST: api/Departments
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public ActionResult<Department> PostDepartment(Department departmentVM) {
-            db.Departments.FromSqlInterpolated($"dbo.Department_Insert {departmentVM.Name},{departmentVM.Budget},{departmentVM.StartDate},{departmentVM.InstructorId}");
+        public async Task<ActionResult<Department>> PostDepartmentAsync(Department departmentVM)
+        {
+            await procedures.Department_Insert(
+                departmentVM.Name,
+                departmentVM.Budget,
+                departmentVM.StartDate,
+                departmentVM.InstructorId);
             return Ok();
         }
 
         // DELETE: api/Departments/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteDepartment(int id) {
+        public async Task<IActionResult> DeleteDepartment(int id)
+        {
             var department = await db.Departments.FindAsync(id);
-            if (department != null) {
-                db.Database.ExecuteSqlRaw("EXEC [dbo].[Department_Delete] @DepartmentID,@RowVersion_Original",
-                    new SqlParameter("@DepartmentID", department.DepartmentId),
-                    new SqlParameter("@RowVersion_Original", department.RowVersion)
+            if (department != null)
+            {
+                await procedures.Department_Delete(
+                    id,
+                    department.RowVersion
                 );
             }
 
@@ -85,6 +106,5 @@ namespace ASPNETCore5HW1.Controllers {
             var result = db.VwDepartmentCourseCounts.FromSqlInterpolated($"SELECT * from [dbo].[vwDepartmentCourseCount] WHERE [DepartmentID] = {id}");
             return result.First().CourseCount;
         }
-        
     }
 }
