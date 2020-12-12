@@ -22,6 +22,7 @@ namespace ASPNETCore5HW1.Models
         public DateTime? EnrollmentDate { get; set; }
         public string Discriminator { get; set; }
         public DateTime? DateModified { get; set; }
+        public bool IsDeleted { get; set; }
 
         public virtual OfficeAssignment OfficeAssignment { get; set; }
         public virtual ICollection<CourseInstructor> CourseInstructors { get; set; }
