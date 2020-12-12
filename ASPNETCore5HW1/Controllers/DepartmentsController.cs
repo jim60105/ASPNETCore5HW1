@@ -66,7 +66,7 @@ namespace ASPNETCore5HW1.Controllers {
         // DELETE: api/Departments/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDepartment(int id) {
-            var department = db.Departments.Find(id);
+            var department = await db.Departments.FindAsync(id);
             if (department != null) {
                 db.Database.ExecuteSqlRaw("EXEC [dbo].[Department_Delete] @DepartmentID,@RowVersion_Original",
                     new SqlParameter("@DepartmentID", department.DepartmentId),
