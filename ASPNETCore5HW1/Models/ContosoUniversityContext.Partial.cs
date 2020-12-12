@@ -1,5 +1,9 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 
 #nullable disable
 
@@ -17,5 +21,14 @@ namespace ASPNETCore5HW1.Models {
                 }
             };
         }
+
+        // override public object Find(Type entityType, params object[] keyValues)
+        // {
+        //     var data = base.Find(entityType, keyValues);
+        //     bool isDeleted = (bool)data.GetType().GetProperty("IsDeleted", BindingFlags.Public).GetValue(data);
+
+        //     return isDeleted ? null : data;
+        // }
     }
 }
+
