@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ASPNETCore5HW1.Models;
 using Omu.ValueInjecter;
+using Repository;
 
 namespace ASPNETCore5HW1.Controllers
 {
@@ -14,58 +15,55 @@ namespace ASPNETCore5HW1.Controllers
     [ApiController]
     public class CourseInstructorsController : ControllerBase
     {
-        private readonly ContosoUniversityContext db;
+        private readonly Repository<CourseInstructor> repo;
 
-        public CourseInstructorsController(ContosoUniversityContext context)
+        public CourseInstructorsController(Repository<CourseInstructor> context)
         {
-            db = context;
+            repo = context;
         }
 
         // GET: api/CourseInstructors
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CourseInstructor>>> GetCourseInstructors()
-        {
-            return await db.CourseInstructors.ToListAsync();
+        public ActionResult<IEnumerable<CourseInstructor>> GetCourseInstructors() {
+            return repo.FindAll().ToList();
         }
 
         // GET: api/Courses/5:4
         [HttpGet("{CourseId}:{InstructorId}")]
-        public async Task<ActionResult<CourseInstructor>> GetCourseInstructor(int CourseId,int InstructorId)
-        {
-            var course = await db.CourseInstructors.FindAsync(new object[] { CourseId, InstructorId});
+        public ActionResult<CourseInstructor> GetCourseInstructor(int CourseId, int InstructorId) {
+            var courseInstructor = repo.FindByCondition(ci => ci.CourseId == CourseId && ci.InstructorId == InstructorId).FirstOrDefault();
 
-            if (course == null)
-            {
+            if (courseInstructor== null) {
                 return NotFound();
             }
 
-            return Ok();
+            return courseInstructor;
         }
 
         // POST: api/CourseInstructors
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-       public async Task<ActionResult<CourseInstructor>> PostCourseInstructor(CourseInstructorEditVM courseInstructorVM) {
+        public ActionResult<CourseInstructor> PostCourseInstructor(CourseInstructorEditVM courseInstructorVM) {
             CourseInstructor courseInstructor = new CourseInstructor();
             courseInstructor.InjectFrom(courseInstructorVM);
 
-            var entry = db.CourseInstructors.Add(courseInstructor);
-            await db.SaveChangesAsync();
+            repo.Create(courseInstructor);
+            repo.SaveChanges();
+            courseInstructor = repo.Reload(courseInstructor);
 
-            courseInstructor=(CourseInstructor) entry.GetDatabaseValues().ToObject();
-            return Created($"/api/CourseInstructors/{courseInstructor.CourseId}:{courseInstructor.InstructorId}",courseInstructor);
+            return Created($"/api/CourseInstructors/{courseInstructor.CourseId}:{courseInstructor.InstructorId}", courseInstructor);
         }
 
         // DELETE: api/CourseInstructors/5:4
         [HttpDelete("{CourseId}:{InstructorId}")]
-        public async Task<IActionResult> DeleteCourseInstructor(int CourseId,int InstructorId) {
-            var courseInstructor = await db.CourseInstructors.FindAsync(new object[] { CourseId, InstructorId });
+        public IActionResult DeleteCourseInstructor(int CourseId, int InstructorId) {
+            var courseInstructor = repo.FindByCondition(ci => ci.CourseId == CourseId && ci.InstructorId == InstructorId).FirstOrDefault();
             if (courseInstructor == null) {
                 return NotFound();
             }
 
-            db.CourseInstructors.Remove(courseInstructor);
-            await db.SaveChangesAsync();
+            repo.Delete(courseInstructor);
+            repo.SaveChanges();
 
             return NoContent();
         }

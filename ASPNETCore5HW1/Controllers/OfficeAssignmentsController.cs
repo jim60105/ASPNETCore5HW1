@@ -1,41 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using ASPNETCore5HW1.Models;
+using Microsoft.AspNetCore.Mvc;
 using Omu.ValueInjecter;
+using Repository;
 
-namespace ASPNETCore5HW1.Controllers
-{
+namespace ASPNETCore5HW1.Controllers {
     [Route("api/[controller]")]
     [ApiController]
-    public class OfficeAssignmentsController : ControllerBase
-    {
-        private readonly ContosoUniversityContext db;
+    public class OfficeAssignmentsController : ControllerBase {
+        private readonly Repository<OfficeAssignment> repo;
 
-        public OfficeAssignmentsController(ContosoUniversityContext context)
-        {
-            db = context;
-        }
+        public OfficeAssignmentsController(Repository<OfficeAssignment> context) => repo = context;
+        private OfficeAssignment FindById(int id) => repo.FindByCondition(o => o.InstructorId == id).FirstOrDefault();
 
         // GET: api/OfficeAssignments
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OfficeAssignment>>> GetOfficeAssignments()
-        {
-            return await db.OfficeAssignments.ToListAsync();
-        }
+        public ActionResult<IEnumerable<OfficeAssignment>> GetOfficeAssignments() => repo.FindAll().ToList();
 
         // GET: api/OfficeAssignments/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<OfficeAssignment>> GetOfficeAssignment(int id)
-        {
-            var officeAssignment = await db.OfficeAssignments.FindAsync(id);
+        public ActionResult<OfficeAssignment> GetOfficeAssignment(int id) {
+            OfficeAssignment officeAssignment = FindById(id);
 
-            if (officeAssignment == null)
-            {
+            if (officeAssignment == null) {
                 return NotFound();
             }
 
@@ -44,14 +32,14 @@ namespace ASPNETCore5HW1.Controllers
 
         // PUT: api/OfficeAssignments/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutOfficeAssignment(int id, OfficeAssignmentEditVM officeAssignmentVM) {
-            if (!OfficeAssignmentExists(id)) {
+        public IActionResult PutOfficeAssignment(int id, OfficeAssignmentEditVM officeAssignmentVM) {
+            OfficeAssignment officeAssignment = FindById(id);
+            if (null == officeAssignment) {
                 return NotFound();
             }
-
-            OfficeAssignment officeAssignment = await db.OfficeAssignments.FindAsync(id);
             officeAssignment?.InjectFrom(officeAssignmentVM);
-            await db.SaveChangesAsync();
+            repo.Update(officeAssignment);
+            repo.SaveChanges();
 
             return NoContent();
         }
@@ -59,33 +47,29 @@ namespace ASPNETCore5HW1.Controllers
         // POST: api/OfficeAssignments
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-       public async Task<ActionResult<OfficeAssignment>> PostOfficeAssignment(OfficeAssignmentEditVM officeAssignmentVM) {
+        public ActionResult<OfficeAssignment> PostOfficeAssignment(OfficeAssignmentEditVM officeAssignmentVM) {
             OfficeAssignment officeAssignment = new OfficeAssignment();
             officeAssignment.InjectFrom(officeAssignmentVM);
 
-            var entry = db.OfficeAssignments.Add(officeAssignment);
-            await db.SaveChangesAsync();
+            repo.Create(officeAssignment);
+            repo.SaveChanges();
+            officeAssignment = repo.Reload(officeAssignment);
 
-            officeAssignment =(OfficeAssignment) entry.GetDatabaseValues().ToObject();
-            return Created($"/api/OfficeAssignments/{officeAssignment.InstructorId}",officeAssignment);
+            return Created($"/api/OfficeAssignments/{officeAssignment.InstructorId}", officeAssignment);
         }
 
         // DELETE: api/OfficeAssignments/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteOfficeAssignment(int id) {
-            var officeAssignment = await db.OfficeAssignments.FindAsync(id);
+        public IActionResult DeleteOfficeAssignment(int id) {
+            OfficeAssignment officeAssignment = FindById(id);
             if (officeAssignment == null) {
                 return NotFound();
             }
 
-            db.OfficeAssignments.Remove(officeAssignment);
-            await db.SaveChangesAsync();
+            repo.Delete(officeAssignment);
+            repo.SaveChanges();
 
             return NoContent();
-        }
-
-        private bool OfficeAssignmentExists(int id) {
-            return db.OfficeAssignments.Any(e => e.InstructorId== id);
         }
     }
 }

@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
+﻿using System.Linq;
 using ASPNETCore5HW1.Models;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Repository {
     public class IsDeletedRepository<T> : Repository<T>, IRepository<T> where T : class, new() {
@@ -21,10 +15,8 @@ namespace Repository {
             .AsQueryable();
 
         public new EntityEntry<T> Delete(T entity) {
-            var entry = RepositoryContext.Entry(entity);
-            entry.CurrentValues.SetValues(new { IsDeleted = true });
-            entry.State = EntityState.Modified;
-            return entry;
+            this.Entry(entity).CurrentValues.SetValues(new { IsDeleted = true });
+            return this.Update(entity);
         }
     }
 }

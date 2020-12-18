@@ -11,5 +11,7 @@ namespace Repository {
         EntityEntry<T> Update(T entity);
         EntityEntry<T> Delete(T entity);
         int SaveChanges();
+        public EntityEntry<T> Entry(T entity);
+        public T Reload(T entity);
     }
 }
