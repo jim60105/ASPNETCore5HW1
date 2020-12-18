@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using Repository;
 
 namespace ASPNETCore5HW1
 {
@@ -31,6 +32,8 @@ namespace ASPNETCore5HW1
             services.AddDbContext<ContosoUniversityContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
             services.AddScoped<ContosoUniversityContextProcedures>();
+            services.AddScoped(typeof(Repository<>));
+            services.AddScoped(typeof(IsDeletedRepository<>));
 
             services.AddControllers();
             services.AddSwaggerGen(c =>

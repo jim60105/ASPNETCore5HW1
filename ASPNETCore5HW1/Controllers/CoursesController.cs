@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ASPNETCore5HW1.Models;
 using Omu.ValueInjecter;
+using Repository;
 
 namespace ASPNETCore5HW1.Controllers
 {
@@ -14,28 +15,36 @@ namespace ASPNETCore5HW1.Controllers
     [ApiController]
     public class CoursesController : ControllerBase
     {
-        private readonly ContosoUniversityContext db;
+        private readonly IsDeletedRepository<Course> repo;
+        private readonly Repository<VwCourseStudent> repoVwCourseStudent;
+        private readonly Repository<VwCourseStudentCount> repoVwCourseStudentsCount;
+        private readonly IsDeletedRepository<Person> repoPerson;
 
-        public CoursesController(ContosoUniversityContext context)
+        public CoursesController(IsDeletedRepository<Course> repo,
+                                 Repository<VwCourseStudent> repoVwCourseStudent,
+                                 Repository<VwCourseStudentCount> repoVwCourseStudentsCount,
+                                 IsDeletedRepository<Person> repoPerson)
         {
-            db = context;
+            this.repo = repo;
+            this.repoVwCourseStudent = repoVwCourseStudent;
+            this.repoVwCourseStudentsCount = repoVwCourseStudentsCount;
+            this.repoPerson = repoPerson;
         }
 
         // GET: api/Courses
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Course>>> GetCourses()
-        {
-            return await db.Courses.ToListAsync();
+        public ActionResult<IEnumerable<Course>> GetCourses() {
+            return repo.FindAll().ToList();
         }
+
+        private Course FindById(int id) => repo.FindByCondition(c => c.CourseId == id).FirstOrDefault();
 
         // GET: api/Courses/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Course>> GetCourse(int id)
-        {
-            var course = await db.Courses.FindAsync(id);
+        public ActionResult<Course> GetCourse(int id) {
+            var course = FindById(id);
 
-            if (course == null)
-            {
+            if (course == null) {
                 return NotFound();
             }
 
@@ -44,14 +53,15 @@ namespace ASPNETCore5HW1.Controllers
 
         // PUT: api/Courses/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCourse(int id, CourseEditVM courseVM) {
-            if (!CourseExists(id)) {
+        public IActionResult PutCourse(int id, CourseEditVM courseVM) {
+            var course = FindById(id);
+            if (null == course) {
                 return NotFound();
             }
 
-            Course course = await db.Courses.FindAsync(id);
             course?.InjectFrom(courseVM);
-            await db.SaveChangesAsync();
+            repo.Update(course);
+            repo.SaveChanges();
 
             return NoContent();
         }
@@ -59,42 +69,38 @@ namespace ASPNETCore5HW1.Controllers
         // POST: api/Courses
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-       public async Task<ActionResult<Course>> PostCourse(CourseEditVM courseVM) {
+        public ActionResult<Course> PostCourse(CourseEditVM courseVM) {
             Course course = new Course();
             course.InjectFrom(courseVM);
 
-            var entry = db.Courses.Add(course);
-            await db.SaveChangesAsync();
+            var entry = repo.Create(course);
+            repo.SaveChanges();
 
-            course =(Course) entry.GetDatabaseValues().ToObject();
-            return Created($"/api/Courses/{course.CourseId}",course);
+            course = (Course)entry.GetDatabaseValues().ToObject();
+            return Created($"/api/Courses/{course.CourseId}", course);
         }
 
         // DELETE: api/Courses/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCourse(int id) {
-            var course = await db.Courses.FindAsync(id);
+        public IActionResult DeleteCourse(int id) {
+            var course = FindById(id);
             if (course == null) {
                 return NotFound();
             }
 
-            db.Courses.Remove(course);
-            await db.SaveChangesAsync();
+            repo.Delete(course);
+            repo.SaveChanges();
 
             return NoContent();
         }
 
-        private bool CourseExists(int id) {
-            return db.Courses.Any(e => e.CourseId == id);
-        }
 
         [HttpGet("/GetCourseStudents/{id}")]
-        public ActionResult<IEnumerable<Person>> GetCourseStudents(int id)
-        {
-            var Students = db.VwCourseStudents.Where(e => e.CourseId == id).ToList();
+        public ActionResult<IEnumerable<Person>> GetCourseStudents(int id) {
+            var Students = repoVwCourseStudent.FindByCondition(e => e.CourseId == id).ToList();
             var result = new List<Person>();
             foreach (var student in Students) {
-                var person = db.People.Find(student.StudentId);
+                var person = repoPerson.FindByCondition(e=>e.Id == student.StudentId).FirstOrDefault();
                 result.Add(person);
             }
 
@@ -102,12 +108,10 @@ namespace ASPNETCore5HW1.Controllers
         }
 
         [HttpGet("/GetCourseStudentCount/{id}")]
-        public ActionResult<int> GetCourseStudentCount(int id)
-        {
-            var count = db.VwCourseStudentCounts.Where(e => e.CourseId == id).FirstOrDefault();
+        public ActionResult<int> GetCourseStudentCount(int id) {
+            var count = repoVwCourseStudentsCount.FindByCondition(e => e.CourseId == id).FirstOrDefault();
 
             return count.StudentCount;
         }
-
     }
 }
